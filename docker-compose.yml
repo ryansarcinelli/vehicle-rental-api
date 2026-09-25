@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: vehicle-rental-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-vehiclerental}
+    ports:
+      # Publicada no host para que ferramentas externas (DBeaver) consigam conectar.
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-vehiclerental}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vehicle-rental-api
+    depends_on:
+      db:
+        # A API só sobe depois que o Postgres aceita conexões, senão a migration falha.
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=${POSTGRES_DB:-vehiclerental};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres}"
+      Database__MigrateOnStartup: "true"
+      Jwt__Secret: ${JWT_SECRET:?defina JWT_SECRET no .env com pelo menos 32 caracteres}
+      Jwt__ExpirationInMinutes: ${JWT_EXPIRATION_MINUTES:-60}
+      Seed__AdminPassword: ${SEED_ADMIN_PASSWORD:-Admin@123456}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
