@@ -1,0 +1,90 @@
+@base = http://localhost:8080
+
+### Login como admin (copie o token da resposta para @token)
+POST {{base}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@vehiclerental.com",
+  "password": "Admin@123456"
+}
+
+### Cadastro de cliente
+POST {{base}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "cliente@email.com",
+  "password": "SenhaForte1",
+  "fullName": "Cliente Exemplo",
+  "driverLicense": "12345678901",
+  "phone": "27999990000"
+}
+
+@token = cole-o-token-aqui
+
+### Frota completa
+GET {{base}}/api/vehicles
+Authorization: Bearer {{token}}
+
+### Frota filtrada
+GET {{base}}/api/vehicles?category=SUV&maxDailyRate=300&page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+### Novo veículo (Admin) — a placa é normalizada pelo domínio
+POST {{base}}/api/vehicles
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "plate": "abc-1d99",
+  "brand": "Fiat",
+  "model": "Argo",
+  "year": 2025,
+  "category": "Hatch",
+  "dailyRate": 110.00
+}
+
+### Enviar para manutenção (Admin)
+PATCH {{base}}/api/vehicles/{{vehicleId}}/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "Maintenance"
+}
+
+### Perfil do cliente autenticado
+GET {{base}}/api/customers/me
+Authorization: Bearer {{token}}
+
+### Criar reserva de 10 dias (Customer) — aplica 10% de desconto
+POST {{base}}/api/rentals
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "vehicleId": "{{vehicleId}}",
+  "startDate": "2026-10-01",
+  "endDate": "2026-10-11"
+}
+
+### Aluguéis visíveis para o chamador
+GET {{base}}/api/rentals
+Authorization: Bearer {{token}}
+
+### Devolução com atraso (Admin) — gera multa
+POST {{base}}/api/rentals/{{rentalId}}/return
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "returnDate": "2026-10-14"
+}
+
+### Cancelar reserva não iniciada
+POST {{base}}/api/rentals/{{rentalId}}/cancel
+Authorization: Bearer {{token}}
+
+### Health check
+GET {{base}}/health
